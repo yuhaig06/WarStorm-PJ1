@@ -1,0 +1,20 @@
+Options +FollowSymLinks
+RewriteEngine On
+RewriteBase /Ptit24dvcn/php/cart/
+
+# Cho phép truy cập vào các file PHP
+<FilesMatch "\.php$">
+    Order Allow,Deny
+    Allow from all
+</FilesMatch>
+
+# Cho phép truy cập vào thư mục
+<Directory "cart">
+    Options +Indexes
+    Allow from all
+</Directory>
+
+# Xử lý URL rewriting
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ $1.php [L] 

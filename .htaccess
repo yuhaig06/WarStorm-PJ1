@@ -1,0 +1,33 @@
+RewriteEngine On
+RewriteBase /Ptit24dvcn/php/
+
+# Cho phép truy cập vào thư mục cart
+<IfModule mod_rewrite.c>
+    RewriteCond %{REQUEST_URI} ^/Ptit24dvcn/php/cart/
+    RewriteRule ^(.*)$ $1 [L]
+</IfModule>
+
+# Loại bỏ đuôi .php
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}.php -f
+RewriteRule ^([^\.]+)$ $1.php [NC,L]
+
+# URL thân thiện cho sản phẩm
+RewriteRule ^san-pham/([0-9]+)$ product_detail.php?id=$1 [L,QSA]
+
+# URL thân thiện cho danh mục
+RewriteRule ^danh-muc/([a-zA-Z0-9-]+)$ products.php?category=$1 [L,QSA]
+
+# URL thân thiện cho trang tĩnh
+RewriteRule ^gioi-thieu$ about.php [L]
+RewriteRule ^lien-he$ contact.php [L]
+RewriteRule ^chinh-sach$ policy.php [L]
+
+# Bảo vệ file .htaccess
+<Files .htaccess>
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+# Chặn truy cập trực tiếp vào thư mục
+Options -Indexes 
