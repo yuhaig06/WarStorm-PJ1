@@ -1,0 +1,26 @@
+RewriteEngine On
+
+# Chuyển hướng từ /PJ1/public/ đến /PJ1/public/home
+RewriteCond %{REQUEST_URI} ^/PJ1/public/$
+RewriteRule ^$ /PJ1/public/home [R=301,L]
+
+# Chuyển hướng tất cả các request đến index.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php?url=$1 [L,QSA]
+
+# Bật theo dõi liên kết tượng trưng
+Options +FollowSymLinks
+
+# Bảo vệ thư mục
+Options -Indexes
+
+# Cấu hình CORS an toàn
+<IfModule mod_headers.c>
+    Header always set Access-Control-Allow-Origin "*"
+    Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+    Header always set Access-Control-Allow-Headers "Content-Type"
+</IfModule>
+
+# Bảo mật: Ẩn thông tin server
+ServerSignature Off

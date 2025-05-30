@@ -27,8 +27,8 @@
 }
 
 body {
+    background: linear-gradient(120deg, #181c24 60%, #23272f 100%);
     font-family: 'Roboto', Arial, sans-serif;
-    background-color: var(--bg-color);
     color: var(--text-color);
     line-height: 1.6;
     transition: var(--transition);

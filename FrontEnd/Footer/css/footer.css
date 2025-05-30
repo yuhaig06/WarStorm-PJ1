@@ -1,3 +1,10 @@
+body {
+    background: linear-gradient(120deg, #181c24 60%, #23272f 100%);
+    min-height: 100vh;
+    color: #fff;
+    font-family: Arial, sans-serif;
+}
+
 .container {
     max-width: 1200px;
     margin: 0 auto;
