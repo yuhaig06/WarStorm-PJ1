@@ -371,17 +371,25 @@ class UserModel extends Model
 
 
     /**
-     * @param int $id
-     * @return array|null
+     * Lấy thông tin người dùng theo ID
+     * 
+     * @param int $id ID của người dùng
+     * @return array|null Thông tin người dùng dạng mảng hoặc null nếu không tìm thấy
      */
     public function getById(int $id): ?array
     {
-        $sql = "SELECT * FROM users WHERE id = :id";
-        $stmt = $this->db->prepare($sql);
-        $stmt->bindParam(':id', $id);
-        $stmt->execute();
-        
-        return $stmt->fetch(\PDO::FETCH_ASSOC);
+        try {
+            $sql = "SELECT * FROM users WHERE id = :id LIMIT 1";
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindParam(':id', $id, \PDO::PARAM_INT);
+            $stmt->execute();
+            
+            $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+            return $result ?: null;
+        } catch (\PDOException $e) {
+            error_log('Lỗi khi lấy thông tin người dùng: ' . $e->getMessage());
+            return null;
+        }
     }
 
     public function findByVerificationToken($token)
@@ -490,11 +498,7 @@ class UserModel extends Model
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function findById(int $id): ?array {
-        $stmt = $this->db->prepare("SELECT * FROM users WHERE id = ?");
-        $stmt->execute([$id]);
-        return $stmt->fetch(\PDO::FETCH_ASSOC) ?: null;
-    }
+    // Phương thức findById đã được thay thế bằng getById
 
     /**
      * Lấy danh sách người dùng với các tuỳ chọn lọc, phân trang, tìm kiếm

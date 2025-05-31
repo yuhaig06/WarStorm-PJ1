@@ -189,6 +189,7 @@ class AuthController extends Controller
             // Save user session
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['token'] = $token;
+            $_SESSION['role'] = $user['role'] ?? 'user'; // Lưu role vào session
 
             // Remove password from response
             unset($user['password']);

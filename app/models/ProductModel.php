@@ -207,16 +207,35 @@ class ProductModel extends Model
         $fields = [];
         $values = [];
         
+        // Đảm bảo sử dụng đúng tên cột 'category' thay vì 'category_id'
+        if (isset($data['category_id'])) {
+            $data['category'] = $data['category_id'];
+            unset($data['category_id']);
+        }
+        
         foreach ($data as $key => $value) {
-            $fields[] = "$key = :$key";
-            $values[":$key"] = $value;
+            // Bỏ qua các trường không tồn tại trong bảng
+            $allowedFields = ['name', 'description', 'price', 'stock', 'category', 'image', 'image_url', 'original_image_name'];
+            if (in_array($key, $allowedFields)) {
+                $fields[] = "$key = :$key";
+                $values[":$key"] = $value;
+            }
+        }
+        
+        if (empty($fields)) {
+            return false; // Không có trường nào để cập nhật
         }
         
         $sql = "UPDATE products SET " . implode(', ', $fields) . " WHERE id = :id";
         $values[':id'] = $id;
         
-        $stmt = $this->db->prepare($sql);
-        return $stmt->execute($values);
+        try {
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute($values);
+        } catch (\PDOException $e) {
+            error_log('Lỗi khi cập nhật sản phẩm: ' . $e->getMessage());
+            return false;
+        }
     }
 
     /**
@@ -224,14 +243,59 @@ class ProductModel extends Model
      * @param int $id ID sản phẩm
      * @return bool Kết quả xóa sản phẩm
      */
+    /**
+     * Xóa sản phẩm
+     * @param int $id ID sản phẩm cần xóa
+     * @return bool True nếu xóa thành công, False nếu thất bại
+     */
     public function delete($id)
     {
-        $sql = "DELETE FROM products WHERE id = :id";
-        $stmt = $this->db->prepare($sql);
-        
-        $stmt->bindParam(':id', $id);
-        
-        return $stmt->execute();
+        try {
+            // Kiểm tra xem sản phẩm có tồn tại không
+            $product = $this->getProductById($id);
+            if (!$product) {
+                error_log("Không tìm thấy sản phẩm với ID: " . $id);
+                return false;
+            }
+
+            // Xóa các bản ghi liên quan trong bảng order_items trước (nếu cần)
+            $this->deleteOrderItemsByProductId($id);
+            
+            // Thực hiện xóa sản phẩm
+            $sql = "DELETE FROM products WHERE id = :id";
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindParam(':id', $id, \PDO::PARAM_INT);
+            
+            $result = $stmt->execute();
+            
+            if (!$result) {
+                $error = $stmt->errorInfo();
+                error_log("Lỗi khi xóa sản phẩm: " . json_encode($error));
+            }
+            
+            return $result;
+        } catch (\PDOException $e) {
+            error_log("Lỗi PDO khi xóa sản phẩm: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Xóa các bản ghi liên quan trong bảng order_items
+     * @param int $productId ID sản phẩm
+     * @return bool Kết quả thực hiện
+     */
+    private function deleteOrderItemsByProductId($productId)
+    {
+        try {
+            $sql = "DELETE FROM order_items WHERE product_id = :product_id";
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindParam(':product_id', $productId, \PDO::PARAM_INT);
+            return $stmt->execute();
+        } catch (\PDOException $e) {
+            error_log("Lỗi khi xóa order_items: " . $e->getMessage());
+            return false;
+        }
     }
 
     /**

@@ -15,6 +15,94 @@ use Exception;
 
 class AdminController extends Controller
 {
+
+    /**
+     * Xóa sản phẩm
+     * @param int $id ID sản phẩm cần xóa
+     */
+    public function deleteProduct($id)
+    {
+        // Kiểm tra xem có phải là yêu cầu AJAX không
+        $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
+                 strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+        
+        // Thiết lập header JSON nếu là AJAX
+        if ($isAjax) {
+            header('Content-Type: application/json; charset=utf-8');
+        }
+        
+        // Kiểm tra quyền admin
+        if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
+            if ($isAjax) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Bạn không có quyền thực hiện hành động này']);
+                exit();
+            } else {
+                $_SESSION['error'] = 'Bạn không có quyền thực hiện hành động này';
+                header('Location: /PJ1/public/admin/products');
+                exit();
+            }
+        }
+
+        try {
+            // Kiểm tra xem sản phẩm có tồn tại không
+            $product = $this->productModel->getProductById($id);
+            if (!$product) {
+                if ($isAjax) {
+                    http_response_code(404);
+                    echo json_encode(['success' => false, 'message' => 'Không tìm thấy sản phẩm']);
+                    exit();
+                } else {
+                    $_SESSION['error'] = 'Không tìm thấy sản phẩm';
+                    header('Location: /PJ1/public/admin/products');
+                    exit();
+                }
+            }
+
+            // Thực hiện xóa
+            $result = $this->productModel->delete($id);
+            
+            if ($isAjax) {
+                if ($result) {
+                    echo json_encode([
+                        'success' => true, 
+                        'message' => 'Xóa sản phẩm thành công',
+                        'data' => ['id' => $id]
+                    ]);
+                } else {
+                    http_response_code(500);
+                    echo json_encode([
+                        'success' => false, 
+                        'message' => 'Có lỗi xảy ra khi xóa sản phẩm'
+                    ]);
+                }
+                exit();
+            } else {
+                if ($result) {
+                    $_SESSION['success'] = 'Xóa sản phẩm thành công';
+                } else {
+                    $_SESSION['error'] = 'Có lỗi xảy ra khi xóa sản phẩm';
+                }
+                header('Location: /PJ1/public/admin/products');
+                exit();
+            }
+        } catch (\Exception $e) {
+            error_log("Lỗi khi xóa sản phẩm: " . $e->getMessage());
+            if ($isAjax) {
+                http_response_code(500);
+                echo json_encode([
+                    'success' => false, 
+                    'message' => 'Có lỗi xảy ra: ' . $e->getMessage()
+                ]);
+                exit();
+            } else {
+                $_SESSION['error'] = 'Có lỗi xảy ra: ' . $e->getMessage();
+                header('Location: /PJ1/public/admin/products');
+                exit();
+            }
+        }
+    }
+
     /**
      * Thêm người dùng mới
      */
@@ -91,12 +179,39 @@ class AdminController extends Controller
             exit();
         }
     }
+    /**
+     * @var UserModel
+     */
     protected $userModel;
+    
+    /**
+     * @var GameModel
+     */
     protected $gameModel;
+    
+    /**
+     * @var NewsModel
+     */
     protected $newsModel;
+    
+    /**
+     * @var CategoryModel
+     */
     protected $categoryModel;
+    
+    /**
+     * @var OrderModel
+     */
     protected $orderModel;
+    
+    /**
+     * @var WalletModel
+     */
     protected $walletModel;
+    
+    /**
+     * @var ProductModel
+     */
     protected $productModel;
 
     public function __construct()
@@ -1572,7 +1687,7 @@ class AdminController extends Controller
      */
     public function delete($id)
     {
-        // Kiểm tra quyền admin
+        // Kiểm quyền admin
         if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
             $_SESSION['error'] = 'Bạn không có quyền thực hiện hành động này';
             header('Location: /PJ1/public/admin/users');
@@ -1603,10 +1718,19 @@ class AdminController extends Controller
             }
         } catch (\Exception $e) {
             error_log("Error in delete user: " . $e->getMessage());
-            $_SESSION['error'] = 'Có lỗi xảy ra khi xóa người dùng';
+            $_SESSION['error'] = 'Có lỗi xảy ra khi xóa người dùng: ' . $e->getMessage();
         }
 
         header('Location: /PJ1/public/admin/users');
         exit();
+    }
+    
+    /**
+     * Kiểm tra nếu request là AJAX
+     */
+    protected function isAjaxRequest()
+    {
+        return !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
+               strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
     }
 }

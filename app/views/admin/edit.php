@@ -132,7 +132,11 @@ $title = $pageTitle ?? 'Quản lý sản phẩm | Admin';
                                             <a href="/PJ1/public/admin/edit/<?php echo $p->id; ?>" class="btn btn-sm btn-primary">
                                                 <i class="fas fa-edit"></i> Sửa
                                             </a>
-                                            <form action="/PJ1/public/admin/delete/<?php echo $p->id; ?>" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa sản phẩm này? Hành động này không thể hoàn tác.');">
+                                            <form action="/PJ1/public/admin/deleteProduct/<?php echo $p->id; ?>" 
+                                                  method="POST" 
+                                                  class="d-inline delete-product-form" 
+                                                  data-product-id="<?php echo $p->id; ?>"
+                                                  data-product-name="<?php echo htmlspecialchars($p->name); ?>">
                                                 <input type="hidden" name="_method" value="DELETE">
                                                 <button type="submit" class="btn btn-sm btn-danger">
                                                     <i class="fas fa-trash"></i> Xóa
@@ -225,6 +229,114 @@ $title = $pageTitle ?? 'Quản lý sản phẩm | Admin';
     
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <script>
+        // Xử lý xóa sản phẩm bằng AJAX
+        document.addEventListener('DOMContentLoaded', function() {
+            // Lắng nghe sự kiện submit form xóa sản phẩm
+            document.querySelectorAll('.delete-product-form').forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const productId = this.dataset.productId;
+                    const productName = this.dataset.productName;
+                    const row = this.closest('tr');
+                    
+                    // Hiển thị xác nhận xóa
+                    Swal.fire({
+                        title: 'Xác nhận xóa',
+                        text: `Bạn có chắc chắn muốn xóa sản phẩm "${productName}"?`,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#3085d6',
+                        confirmButtonText: 'Xóa',
+                        cancelButtonText: 'Hủy'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // Gửi yêu cầu xóa bằng AJAX
+                            // Thêm loading state
+                            const deleteBtn = this.querySelector('button[type="submit"]');
+                            const originalBtnText = deleteBtn.innerHTML;
+                            deleteBtn.disabled = true;
+                            deleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Đang xóa...';
+                            
+                            // Log thông tin request để debug
+                            console.log('Sending request to:', this.action);
+                            
+                            fetch(this.action, {
+                                method: 'POST',
+                                headers: {
+                                    'X-Requested-With': 'XMLHttpRequest',
+                                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                                    'Accept': 'application/json'
+                                },
+                                body: new URLSearchParams({
+                                    _method: 'DELETE',
+                                    _token: '<?php echo $_SESSION['csrf_token'] ?? ''; ?>'
+                                })
+                            })
+                            .then(async response => {
+                                // Reset button state
+                                deleteBtn.disabled = false;
+                                deleteBtn.innerHTML = originalBtnText;
+                                
+                                // Debug response
+                                const responseText = await response.text();
+                                console.log('Response status:', response.status);
+                                console.log('Response headers:', [...response.headers.entries()]);
+                                console.log('Response text:', responseText);
+                                
+                                try {
+                                    // Thử parse JSON
+                                    return JSON.parse(responseText);
+                                } catch (e) {
+                                    console.error('Failed to parse JSON:', e);
+                                    throw new Error(`Phản hồi không hợp lệ từ máy chủ: ${responseText.substring(0, 100)}...`);
+                                }
+                            })
+                            .then(data => {
+                                if (data && data.success) {
+                                    // Xóa dòng sản phẩm khỏi bảng
+                                    row.remove();
+                                    
+                                    // Hiển thị thông báo thành công
+                                    Swal.fire({
+                                        title: 'Đã xóa!',
+                                        text: data.message || 'Sản phẩm đã được xóa thành công.',
+                                        icon: 'success',
+                                        timer: 2000,
+                                        showConfirmButton: false
+                                    });
+                                    
+                                    // Nếu không còn sản phẩm nào, hiển thị thông báo
+                                    if (document.querySelectorAll('tbody tr').length === 0) {
+                                        const tbody = document.querySelector('tbody');
+                                        tbody.innerHTML = `
+                                            <tr>
+                                                <td colspan="5" class="text-center">Không có sản phẩm nào</td>
+                                            </tr>
+                                        `;
+                                    }
+                                } else {
+                                    throw new Error(data?.message || 'Có lỗi xảy ra khi xóa sản phẩm');
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error:', error);
+                                Swal.fire({
+                                    title: 'Lỗi!',
+                                    text: error.message || 'Có lỗi xảy ra khi xóa sản phẩm',
+                                    icon: 'error',
+                                    confirmButtonText: 'Đóng'
+                                });
+                            });
+                        }
+                    });
+                });
+            });
+        });
+    </script>
     
     <!-- Preview image before upload -->
     <script>

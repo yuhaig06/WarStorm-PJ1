@@ -211,11 +211,13 @@ $title = 'Quản lý người dùng | Admin';
                                                                 data-status="<?php echo $user['is_active']; ?>">
                                                             <i class="fas fa-edit"></i>
                                                         </button>
-                                                        <button type="button" class="btn btn-sm btn-outline-danger delete-user-btn" 
-                                                                data-id="<?php echo $user['id']; ?>"
-                                                                data-username="<?php echo htmlspecialchars(addslashes($user['username'])); ?>">
-                                                            <i class="fas fa-trash-alt"></i>
-                                                        </button>
+                                                        <form action="/PJ1/public/admin/delete/<?php echo $user['id']; ?>" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa người dùng này?')">
+                                                            <input type="hidden" name="_method" value="DELETE">
+                                                            <input type="hidden" name="_token" value="<?php echo $_SESSION['csrf_token'] ?? ''; ?>">
+                                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                                <i class="fas fa-trash-alt"></i>
+                                                            </button>
+                                                        </form>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -359,7 +361,96 @@ $title = 'Quản lý người dùng | Admin';
     <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
+        // Xử lý sự kiện khi click nút xóa
+        $(document).on('click', '.btn-delete-user', function(e) {
+            e.preventDefault();
+            
+            if (!confirm('Bạn có chắc chắn muốn xóa người dùng này?')) {
+                return false;
+            }
+            
+            const userId = $(this).data('id');
+            const $deleteButton = $(this);
+            
+            // Vô hiệu hóa nút xóa để tránh click nhiều lần
+            $deleteButton.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang xóa...');
+            
+            console.log('Đang gửi yêu cầu xóa user ID:', userId);
+            
+            // Sử dụng URL tương đối để tránh vấn đề về base URL
+            $.ajax({
+                url: '/PJ1/public/admin/delete/' + userId,
+                type: 'POST',
+                data: {
+                    _method: 'DELETE',
+                    _token: '<?php echo $_SESSION['csrf_token'] ?? ''; ?>',
+                    ajax: '1'
+                },
+                dataType: 'json',
+                success: function(response) {
+                    console.log('Phản hồi từ server:', response);
+                    if (response && response.success) {
+                        // Hiển thị thông báo thành công
+                        showAlert('success', response.message || 'Xóa người dùng thành công');
+                        // Xóa dòng khỏi bảng
+                        $deleteButton.closest('tr').fadeOut(400, function() {
+                            $(this).remove();
+                        });
+                    } else {
+                        const errorMsg = response && response.message 
+                            ? response.message 
+                            : 'Có lỗi xảy ra khi xóa người dùng';
+                        console.error('Lỗi từ server:', errorMsg);
+                        showAlert('danger', errorMsg);
+                        $deleteButton.prop('disabled', false).html('<i class="fas fa-trash-alt"></i>');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Lỗi AJAX:', {
+                        status: xhr.status,
+                        statusText: xhr.statusText,
+                        responseText: xhr.responseText,
+                        error: error
+                    });
+                    
+                    let errorMessage = 'Có lỗi xảy ra khi xóa người dùng';
+                    
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        if (response && response.message) {
+                            errorMessage = response.message;
+                        }
+                    } catch (e) {
+                        console.error('Không thể phân tích phản hồi JSON:', e);
+                    }
+                    
+                    showAlert('danger', errorMessage);
+                    $deleteButton.prop('disabled', false).html('<i class="fas fa-trash-alt"></i>');
+                }
+            });
+        });
+
+        // Hàm hiển thị thông báo
+        function showAlert(type, message) {
+            const alertHtml = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    <i class="fas fa-${type === 'success' ? 'check' : 'exclamation'}-circle me-2"></i>
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `;
+            
+            // Thêm thông báo vào đầu phần main content
+            $('main').prepend(alertHtml);
+            
+            // Tự động ẩn thông báo sau 5 giây
+            setTimeout(() => {
+                $('.alert').alert('close');
+            }, 5000);
+        }
+
         // Xử lý sự kiện khi modal chỉnh sửa hiển thị
         const editUserModal = document.getElementById('editUserModal');
         if (editUserModal) {
