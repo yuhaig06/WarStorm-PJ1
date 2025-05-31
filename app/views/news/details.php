@@ -90,30 +90,7 @@
                     echo $content;
                     ?>
                     <div style="margin-top: 40px; text-align: center;">
-                        <a href="/PJ1/public/news" class="back-button" style="
-                            display: inline-flex;
-                            align-items: center;
-                            justify-content: center;
-                            gap: 8px;
-                            padding: 12px 28px;
-                            background: linear-gradient(135deg, #246bfd 0%, #1a5bd9 100%);
-                            color: white;
-                            text-decoration: none;
-                            border-radius: 50px;
-                            font-weight: 600;
-                            font-size: 1rem;
-                            border: none;
-                            cursor: pointer;
-                            box-shadow: 0 4px 15px rgba(36, 107, 253, 0.3);
-                            transition: all 0.3s ease;
-                            position: relative;
-                            overflow: hidden;
-                        ">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="transition: transform 0.3s ease;">
-                                <path d="M19 12H5M5 12L11 18M5 12L11 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                            <span>Quay lại tin tức</span>
-                        </a>
+                        
                         <style>
                             .back-button:hover {
                                 transform: translateY(-2px);
