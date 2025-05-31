@@ -38,6 +38,9 @@ $categories = [
             <img src="/PJ1/FrontEnd/Home/img/logo.png" alt="Logo" class="logo">
         </div>
         <button class="menu-toggle" id="menu-toggle" aria-label="Mở menu"><span>☰</span></button>
+        <button class="mobile-search-btn" id="mobile-search-btn" aria-label="Tìm kiếm">
+            <i class="fas fa-search"></i>
+        </button>
         <ul class="nav">
             <li><a href="/PJ1/public/home">Trang chủ</a></li>
             <li><a href="/PJ1/public/news">Tin tức</a></li>
@@ -46,10 +49,14 @@ $categories = [
             <li><a href="/PJ1/public/admin">Admin</a></li>
         </ul>
         <div class="col-auto">
-            <button id="search-toggle" class="search-toggle-btn">🔍 TÌM KIẾM</button>
             <div id="search-box" class="search-box">
-                <input type="text" id="search-input" placeholder="Nhập từ khóa..." />
-                <button onclick="searchGames()">🔎 Tìm kiếm</button>
+                <form id="global-search-form" onsubmit="return false;">
+                    <input type="text" id="search-input" name="q" placeholder="Tìm kiếm sản phẩm, bài viết..." autocomplete="off" />
+                    <button type="button" id="search-button" onclick="searchAll()">
+                        <i class="fas fa-search"></i> Tìm kiếm
+                    </button>
+                </form>
+                <div id="search-results" class="search-results"></div>
             </div>
             <div class="auth-buttons">
                 <?php if(isset($_SESSION['user_id']) && $_SESSION['user_id']): ?>
@@ -242,55 +249,85 @@ $categories = [
         </div>
     </div>
 </body>
+<!-- Thêm script tìm kiếm toàn cục -->
+<script src="/PJ1/public/assets/js/global-search.js"></script>
 <script>
-    // JS TÌM KIẾM TOÀN BỘ WARSTORM (client-side)
-    (function() {
-        // Toggle search box
-        var searchToggle = document.getElementById('search-toggle');
-        var searchBox = document.getElementById('search-box');
-        if (searchToggle && searchBox) {
-            searchToggle.onclick = function(e) {
-                e.stopPropagation();
+    // Xử lý hiển thị/ẩn ô tìm kiếm trên mobile
+    document.addEventListener('DOMContentLoaded', function() {
+        const mobileSearchBtn = document.getElementById('mobile-search-btn');
+        const searchBox = document.querySelector('.search-box');
+        
+        if (mobileSearchBtn && searchBox) {
+            mobileSearchBtn.addEventListener('click', function(e) {
+                e.preventDefault();
                 searchBox.classList.toggle('active');
+                
+                // Tự động focus vào ô tìm kiếm khi hiển thị
                 if (searchBox.classList.contains('active')) {
-                    document.getElementById('search-input').focus();
+                    const searchInput = document.getElementById('search-input');
+                    if (searchInput) {
+                        searchInput.focus();
+                    }
                 }
-            };
-            // Đóng search box khi click ra ngoài
+            });
+            
+            // Ẩn ô tìm kiếm khi click ra ngoài
             document.addEventListener('click', function(e) {
-                if (
-                    searchBox.classList.contains('active') &&
-                    !searchBox.contains(e.target) &&
-                    e.target !== searchToggle &&
-                    !searchToggle.contains(e.target)
-                ) {
+                if (!searchBox.contains(e.target) && e.target !== mobileSearchBtn && !mobileSearchBtn.contains(e.target)) {
                     searchBox.classList.remove('active');
                 }
             });
         }
-    })();
-
-    // Hàm tìm kiếm toàn bộ bài viết trong WarStorm (client-side)
-    function searchGames() {
-        var keyword = document.getElementById('search-input').value.toLowerCase();
-        var posts = document.querySelectorAll('.list-of-latest-posts li, .game-list .game-title, .show-title, .categories, .featured-news, .short-description');
-        var found = false;
-        posts.forEach(function(post) {
-            var text = post.innerText ? post.innerText.toLowerCase() : '';
-            if (text.includes(keyword)) {
-                post.style.display = '';
-                found = true;
-            } else {
-                post.style.display = 'none';
-            }
-        });
-        // Nếu không tìm thấy, có thể hiện thông báo
-        var resultMsg = document.getElementById('search-result-msg');
-        if (resultMsg) {
-            resultMsg.style.display = found ? 'none' : 'block';
+    });
+</script>
+<script>
+    // Khởi tạo biến toàn cục
+    let globalSearch;
+    
+    // Hàm searchAll được gọi từ onclick của nút tìm kiếm
+    function searchAll() {
+        if (!globalSearch) {
+            globalSearch = new GlobalSearch();
+        }
+        const searchInput = document.getElementById('search-input');
+        if (searchInput && searchInput.value.trim() !== '') {
+            globalSearch.handleSearch(new Event('click'));
         }
     }
+    
+    // Khởi tạo tìm kiếm toàn cục khi DOM đã tải xong
+    document.addEventListener('DOMContentLoaded', function() {
+        // Khởi tạo đối tượng tìm kiếm
+        globalSearch = new GlobalSearch();
+        
+        // Thêm sự kiện click cho nút tìm kiếm
+        const searchButton = document.getElementById('search-button');
+        if (searchButton) {
+            searchButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                globalSearch.handleSearch(e);
+            });
+        }
+        
+        // Thêm sự kiện nhấn Enter trong ô tìm kiếm
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    globalSearch.handleSearch(e);
+                }
+            });
+            
+            // Tự động tìm kiếm khi nhập (với debounce)
+            let searchTimeout;
+            searchInput.addEventListener('input', function(e) {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    globalSearch.handleSearch(e);
+                }, 500);
+            });
+        }
+    });
 </script>
-<!-- Thêm thông báo kết quả tìm kiếm nếu muốn -->
-<div id="search-result-msg" style="display:none;color:#ffcc00;text-align:center;margin-top:10px;">Không tìm thấy kết quả phù hợp!</div>
 </html>

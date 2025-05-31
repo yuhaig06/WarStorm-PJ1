@@ -37,6 +37,7 @@ require_once __DIR__ . '/../app/controllers/EsportsController.php';
 require_once __DIR__ . '/../app/controllers/StoreController.php';
 require_once __DIR__ . '/../app/controllers/AdminController.php';
 require_once __DIR__ . '/../app/controllers/ContactController.php';
+require_once __DIR__ . '/../app/controllers/SearchController.php';
 require_once __DIR__ . '/../app/controllers/HotgamesController.php';
 require_once __DIR__ . '/../app/controllers/PrivacyPolicyController.php';
 require_once __DIR__ . '/../app/controllers/TermsController.php';
@@ -47,6 +48,13 @@ $request_uri = str_replace('/PJ1/public', '', $request_uri);
 $request_uri = trim($request_uri, '/');
 $uri = $request_uri ? explode('/', $request_uri) : [];
 
+
+// Handle search route
+if (isset($uri[0]) && $uri[0] === 'search') {
+    $searchController = new \App\Controllers\SearchController();
+    echo $searchController->search();
+    exit;
+}
 
 try {
     if (empty($uri)) {

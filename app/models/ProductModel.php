@@ -320,11 +320,32 @@ class ProductModel extends Model
      * @param string $keyword Từ khóa tìm kiếm
      * @return array Danh sách sản phẩm
      */
+    /**
+     * Tìm kiếm sản phẩm theo từ khóa
+     * @param string $keyword Từ khóa tìm kiếm
+     * @return array Danh sách sản phẩm phù hợp
+     */
     public function searchProducts($keyword)
     {
-        $this->db->query('SELECT * FROM products WHERE name LIKE :keyword OR description LIKE :keyword ORDER BY created_at DESC');
-        $this->db->bind(':keyword', '%' . $keyword . '%');
-        return $this->db->resultSet();
+        try {
+            $query = "SELECT id, name, slug, price, sale_price, image, description, stock 
+                     FROM products 
+                     WHERE name LIKE :keyword 
+                     OR description LIKE :keyword 
+                     AND status = 'active'
+                     ORDER BY created_at DESC 
+                     LIMIT 10";
+            
+            $stmt = $this->db->prepare($query);
+            $searchTerm = "%{$keyword}%";
+            $stmt->bindParam(':keyword', $searchTerm, PDO::PARAM_STR);
+            
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log("Search products error: " . $e->getMessage());
+            return [];
+        }
     }
 
     /**

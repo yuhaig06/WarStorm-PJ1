@@ -30,14 +30,19 @@
     </header>
     <main>
 
-        <form id="main-search-form" action="<?php echo URLROOT; ?>/store/index" method="GET" class="search-form" style="max-width:420px;margin:0 auto 24px auto; display:none; flex-direction: column; gap: 10px; align-items: stretch;">
-            <input type="text" name="keyword" class="form-control" value="<?php echo isset($_GET['keyword']) ? htmlspecialchars($_GET['keyword']) : ''; ?>" placeholder="Nhập từ khóa sản phẩm..." style="margin-bottom: 0;">
-            <button type="submit" style="margin-top: 0; width: 100%;">Tìm kiếm</button>
+        <form id="main-search-form" class="search-form" onsubmit="return false;">
+            <div class="search-input-container">
+                <input type="text" id="search-input" name="keyword" class="form-control" 
+                       placeholder="Nhập tên sản phẩm..." autocomplete="off">
+                <button type="button" class="search-button" onclick="searchProducts()">
+                    <i class="fas fa-search"></i> Tìm kiếm
+                </button>
+            </div>
         </form>
         <section class="products" id="product-list">
             <?php if(isset($products) && !empty($products)): ?>
                 <?php foreach($products as $product): ?>
-                    <div class="product">
+                    <div class="product" data-name="<?php echo strtolower(htmlspecialchars($product['name'])); ?>" data-desc="<?php echo strtolower(htmlspecialchars($product['description'])); ?>">
                         <img src="/PJ1/public/assets/img/<?php echo htmlspecialchars($product['image']); ?>" alt="<?php echo htmlspecialchars($product['name']); ?>" />
                         <h3><?php echo htmlspecialchars($product['name']); ?></h3>
                         <p><?php echo htmlspecialchars($product['description']); ?></p>
@@ -109,7 +114,79 @@
             form.style.display = 'none';
         }
     }
+
+    function searchProducts() {
+        const searchTerm = document.getElementById('search-input').value.trim().toLowerCase();
+        const products = document.querySelectorAll('.product');
+        let hasResults = false;
+
+        // Ẩn tất cả sản phẩm trước khi tìm kiếm
+        products.forEach(product => {
+            product.style.display = 'none';
+        });
+
+        // Nếu không có từ khóa, hiển thị tất cả sản phẩm
+        if (!searchTerm) {
+            products.forEach(product => {
+                product.style.display = 'block';
+            });
+            const noResults = document.getElementById('no-results');
+            if (noResults) noResults.remove();
+            return;
+        }
+
+        // Tìm kiếm sản phẩm phù hợp
+        products.forEach(product => {
+            const productName = product.getAttribute('data-name');
+            const productDesc = product.getAttribute('data-desc');
+            
+            if (productName && productName.includes(searchTerm) || 
+                productDesc && productDesc.includes(searchTerm)) {
+                product.style.display = 'block';
+                hasResults = true;
+            }
+        });
+
+        // Hiển thị thông báo nếu không tìm thấy kết quả
+        const noResults = document.getElementById('no-results');
+        if (!hasResults) {
+            if (!noResults) {
+                const productList = document.getElementById('product-list');
+                const message = document.createElement('div');
+                message.id = 'no-results';
+                message.className = 'no-results';
+                message.innerHTML = `
+                    <i class="fas fa-search"></i>
+                    <p>Không tìm thấy sản phẩm phù hợp với từ khóa "${searchTerm}"</p>
+                `;
+                productList.appendChild(message);
+            }
+        } else if (noResults) {
+            noResults.remove();
+        }
+    }
+
+    // Thêm sự kiện khi trang tải xong
+    document.addEventListener('DOMContentLoaded', function() {
+        // Xử lý sự kiện nhấn Enter để tìm kiếm
+        document.getElementById('search-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                searchProducts();
+            }
+        });
+
+        // Tự động tìm kiếm khi nhập (với độ trễ 300ms)
+        let searchTimer;
+        document.getElementById('search-input').addEventListener('input', function() {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => {
+                searchProducts();
+            }, 300);
+        });
+    });
     </script>
     <script src="/PJ1/public/assets/js/store.js"></script>
+    </script>
 </body>
 </html>
